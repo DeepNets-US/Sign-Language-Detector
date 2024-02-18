@@ -17,7 +17,7 @@ To get started with the Sign Language Detector, follow these steps:
 
 1. Open your terminal.
 2. Navigate to the project directory.
-3. Go to gui.py
+3. Go to [gui.py](https://github.com/DeepNets-US/Sign-Language-Detector/blob/main/gui.py)
 4. Run the following command:
 
    ```bash
@@ -27,7 +27,7 @@ To get started with the Sign Language Detector, follow these steps:
 ### Option 2: Manual GUI Run
 
 1. Open your preferred Python environment or IDE.
-2. Open the `sign_language_gui.py` file.
+2. Open the `gui.py` file.
 3. Run the script.
 
 ## Note
