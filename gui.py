@@ -1,7 +1,9 @@
 # Model Imports
+import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import mediapipe as mp
 
 # GUI Imports
 from tkinter import *
@@ -10,7 +12,11 @@ from PIL import Image, ImageTk
 
 # Model Loading
 classes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "DEL", "NOTHING", "SPACE"]
-model = keras.models.load_model("./ASL.h5")
+model = keras.models.load_model("ASL.h5")
+
+# Initialize Mediapipe Hands model
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
 
 # Initialize GUI
 top = Tk()
@@ -22,24 +28,53 @@ top.configure(background='#CDCDCD')
 sign_label = Label(top, background="#CDCDCD", font=('arial', 15, 'bold'))
 image_input = Label(top)
 
-def load_image(file_path):
-    """
-    Load and preprocess image from file path.
+def detect_hands_and_crop(img_path, enlargement=50, target_size=(64, 64)):
 
-    Args:
-    - file_path (str): The path to the input image file.
+    # Convert BGR image to RGB
+    img = cv2.imread(img_path)
+    rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    Returns:
-    - numpy.ndarray: The preprocessed image.
-    """
-    img = Image.open(file_path)
-    img = img.resize((224, 224))
-    img = np.expand_dims(img, axis=0)
-    img = np.delete(np.array(img), 0, 1)
-    img = np.resize(img, (224, 224, 3))
-    img = np.reshape(img, (-1,224,224,3))
-    img = img/255.
-    return img
+    # Get results from Mediapipe Hands model
+    results = hands.process(rgb_img)
+
+    # Crop and return the detected hands
+    cropped_hands = []
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            # Extract bounding box coordinates
+            bboxCorners = []
+            for landmark in hand_landmarks.landmark:
+                x, y, _ = int(landmark.x * img.shape[1]), int(landmark.y * img.shape[0]), int(landmark.z * img.shape[1])
+                bboxCorners.append((x, y))
+
+            # Calculate enlarged bounding box
+            x_min = max(0, min(bboxCorners, key=lambda x: x[0])[0] - enlargement)
+            y_min = max(0, min(bboxCorners, key=lambda x: x[1])[1] - enlargement)
+            x_max = min(img.shape[1], max(bboxCorners, key=lambda x: x[0])[0] + enlargement)
+            y_max = min(img.shape[0], max(bboxCorners, key=lambda x: x[1])[1] + enlargement)
+
+            # Crop the detected hand region and append to the list
+            cropped_hand = img[y_min:y_max, x_min:x_max]
+
+            # Resize the cropped hand to the target size (64x64)
+            cropped_hand = cv2.resize(cropped_hand, target_size)
+
+            # Normalize the pixel values to be between 0 and 1
+            cropped_hand = cv2.cvtColor(cropped_hand, cv2.COLOR_RGB2BGR)
+            cropped_hand = cropped_hand / 255.0
+
+            # Append the processed hand to the list
+            cropped_hands.append(cropped_hand)
+
+    if len(cropped_hands)==0:
+        img = cv2.resize(img, target_size)
+        img = img /255.
+        img = img[np.newaxis, ...]
+        return img
+
+    else:
+        return np.array(cropped_hands)
+
 
 def detect_sign_language(file_path):
     """
@@ -51,7 +86,7 @@ def detect_sign_language(file_path):
     Returns:
     None
     """
-    img = load_image(file_path)
+    img = detect_hands_and_crop(file_path)
 
     # Predict the sign language
     pred_sign = classes[tf.argmax(tf.squeeze(model.predict(img, verbose=0)))]
