@@ -12,7 +12,7 @@ from PIL import Image, ImageTk
 
 # Model Loading
 classes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "DEL", "NOTHING", "SPACE"]
-model = keras.models.load_model("ASL.h5")
+model = keras.models.load_model("weights.h5")
 
 # Initialize Mediapipe Hands model
 mp_hands = mp.solutions.hands
